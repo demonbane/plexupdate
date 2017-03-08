@@ -1,0 +1,16 @@
+language: bash
+sudo: required
+
+script:
+    - ./test/test-installer
+    - sudo /etc/cron.daily/plexupdate
+
+env:
+    global:
+        - BRANCHNAME=test-travisci
+        - GIT_OWNER=demonbane
+
+addons:
+    apt:
+        packages:
+            - expect
