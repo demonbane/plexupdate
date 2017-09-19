@@ -70,17 +70,26 @@ getPlexServerToken() {
 		source /etc/default/plexmediaserver
 	fi
 
-	# List possible locations to find Plex Server preference file
-	local VALIDPATHS=("${PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR}" "/var/lib/plexmediaserver/Library/Application Support/" "${HOME}/Library/Application Support/")
 	local PREFFILE="/Plex Media Server/Preferences.xml"
 
+	# getent passwd with no parameters returns every user in the db, so make sure $PMSU has a value first
+	[ -n "${PLEX_MEDIA_SERVER_USER}" ] && local PMS_USER_HOME="$(getent passwd "${PLEX_MEDIA_SERVER_USER}" | cut -d: -f6)"
+
+	# List possible locations to find Plex Server preference file.
+	# There is no official list of search path preference, so this is a best guess. We use the first valid token found.
+	local VALIDPATHS=()
+	[ -d "${PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR}" ] && VALIDPATHS+="${PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR%/}"
+	[ -d "/var/lib/plexmediaserver/Library/Application Support/" ] && VALIDPATHS+="/var/lib/plexmediaserver/Library/Application Support"
+	[ -d "${PMS_USER_HOME}" -a -d "${PMS_USER_HOME}/Library/Application Support" ] && VALIDPATHS+="${PMS_USER_HOME%/}/Library/Application Support"
+	[ -d "${HOME}" -a -d "${HOME}/Library/Application Support" ] && VALIDPATHS+="${HOME%/}/Library/Application Support"
+
 	for I in "${VALIDPATHS[@]}" ; do
-		if [ ! -z "${I}" -a -f "${I}${PREFFILE}" ]; then
+		if [ -f "${I}${PREFFILE}" ]; then
 			# When running installer.sh directly from wget, $0 will return bash
 			if [ "$(basename $0)" = "installer.sh" -o "$(basename $0)" = "bash" ]; then
-				TOKEN=$(sudo sed -n 's/.*PlexOnlineToken="\([[:alnum:]]*\).*".*/\1/p' "${I}${PREFFILE}" 2>/dev/null)
+				TOKEN=$(sudo sed -n 's/.*PlexOnlineToken="\([[:alnum:]]*\).*".*/\1/p' "${I}${PREFFILE}" 2>/dev/null) && break
 			else
-				TOKEN=$(sed -n 's/.*PlexOnlineToken="\([[:alnum:]]*\).*".*/\1/p' "${I}${PREFFILE}" 2>/dev/null)
+				TOKEN=$(sed -n 's/.*PlexOnlineToken="\([[:alnum:]]*\).*".*/\1/p' "${I}${PREFFILE}" 2>/dev/null) && break
 			fi
 		fi
 	done
