@@ -233,11 +233,12 @@ if [ "${AUTOUPDATE}" = "yes" ]; then
 	else
 		if [ -z "${BRANCHNAME}" ]; then
 			BRANCHNAME="$(git symbolic-ref -q --short HEAD)"
-		elif [ "${BRANCHNAME}" != "$(git symbolic-ref -q --short HEAD)" ]; then
-			git checkout "${BRANCHNAME}"
 		fi
 		# Force FETCH_HEAD to point to the correct branch (for older versions of git which don't default to current branch)
 		if git fetch origin ${BRANCHNAME} --quiet && ! git diff --quiet FETCH_HEAD; then
+			if [ "${BRANCHNAME}" != "$(git symbolic-ref -q --short HEAD)" ]; then
+				git checkout "${BRANCHNAME}"
+			fi
 			info "Auto-updating..."
 
 			# Use an associative array to store permissions. If you're running bash < 4, the declare will fail and we'll
